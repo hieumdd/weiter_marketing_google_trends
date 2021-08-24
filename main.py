@@ -11,7 +11,7 @@ def main(request):
     data = json.loads(base64.b64decode(data_bytes).decode("utf-8"))
     print(data)
 
-    job = InterestByRegion.factory(
+    job = InterestByRegion(
         start=data.get("start"),
         end=data.get("end"),
     )
