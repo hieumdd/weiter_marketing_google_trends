@@ -1,7 +1,7 @@
 import json
 import base64
 
-from models import InterestByRegion, InterestOverTime
+from models import InterestOverTime
 
 
 def main(request):
@@ -12,8 +12,7 @@ def main(request):
     print(data)
 
     job = InterestOverTime(
-        start=data.get("start"),
-        end=data.get("end"),
+        geo=data["geo"],
     )
     results = job.run()
 

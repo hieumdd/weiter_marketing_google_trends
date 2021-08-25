@@ -13,11 +13,7 @@
             "type": "INTEGER"
         },
         {
-            "name": "start",
-            "type": "DATE"
-        },
-        {
-            "name": "end",
+            "name": "date",
             "type": "DATE"
         },
         {

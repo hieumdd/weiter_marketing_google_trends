@@ -1,6 +1,10 @@
 from .utils import process
 
+GEO = "VN"
+
 
 def test_auto():
-    data = {}
+    data = {
+        "geo": GEO,
+    }
     process(data)
