@@ -5,7 +5,6 @@ from google.cloud import pubsub_v1
 with open("configs/geocodes.txt") as f:
     GEOS = f.read().splitlines()
 
-# GEOS = ["US", "VN", "DE"]
 
 def broadcast():
     publisher = pubsub_v1.PublisherClient()
@@ -22,5 +21,5 @@ def broadcast():
         publisher.publish(topic_path, data=message_bytes).result()
 
     return {
-        "message_sent": len(geo),
+        "message_sent": len(GEOS),
     }
