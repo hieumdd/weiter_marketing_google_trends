@@ -110,11 +110,11 @@
         },
         "google-cloud-bigquery": {
             "hashes": [
-                "sha256:8111d23e2af87a96c0646a82a83f62d694b6c8829e7881eb4e437b754471649f",
-                "sha256:f9d118a0e408d213f00eb3b5bfb07027a79a6604b078dae86276f6c4938a9c9a"
+                "sha256:2128c4ee294876be9960466dfb8daab9c36185c5bd2ce7b0d342f10cc4fe3769",
+                "sha256:ea6ff7ede03f3a36f809d800aa5b3d0f733f3cdfe34493deef9f3f7da9aeedbd"
             ],
             "index": "pypi",
-            "version": "==2.24.1"
+            "version": "==2.25.0"
         },
         "google-cloud-core": {
             "hashes": [
