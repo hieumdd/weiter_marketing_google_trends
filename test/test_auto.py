@@ -1,6 +1,6 @@
 from .utils import process
 
-GEO = "ML"
+GEO = "VN"
 
 
 def test_auto():

@@ -21,7 +21,8 @@ KW_LISTS = [
     for i in range(0, len(RAW_KEYWORD_LIST), KW_PER_LIST)
 ]
 
-TREND_REQ = TrendReq(hl="en-US", tz=360)
+EST = 60 * 5
+TREND_REQ = TrendReq(hl="en-US", tz=EST)
 
 NOW = datetime.utcnow()
 DATE_FORMAT = "%Y-%m-%d"
@@ -51,7 +52,7 @@ class InterestOverTime:
         rows = []
         for kw_list in KW_LISTS:
             max_attempts = 5
-            attempt = 0
+            attempt = 1
             while True:
                 try:
                     TREND_REQ.build_payload(
@@ -63,7 +64,7 @@ class InterestOverTime:
                     break
                 except ResponseError as e:
                     if attempt < max_attempts:
-                        time.sleep(30)
+                        time.sleep(20 * attempt)
                         attempt += 1
                     else:
                         raise e
@@ -99,7 +100,7 @@ class InterestOverTime:
 
     def load(self, rows):
         max_attempts = 5
-        attempt = 0
+        attempt = 1
         while True:
             try:
                 return BQ_CLIENT.load_table_from_json(
@@ -114,23 +115,10 @@ class InterestOverTime:
                 ).result()
             except Forbidden as e:
                 if attempt < max_attempts:
-                    time.sleep(30)
+                    time.sleep(20 * attempt)
                     attempt += 1
                 else:
                     raise e
-
-    def update(self):
-        query = f"""
-        CREATE OR REPLACE TABLE {DATASET}.{self.table} AS
-        SELECT * EXCEPT(row_num)
-        FROM (
-            SELECT *, ROW_NUMBER() OVER (
-                PARTITION BY `kw`, `geoName`, `geoCode`, `start`, `end`
-                ORDER BY _batched_at DESC
-            ) AS row_num
-            FROM {DATASET}._stage_{self.table}
-        ) WHERE row_num = 1"""
-        BQ_CLIENT.query(query)
 
     def run(self):
         rows = self.get()
@@ -144,6 +132,5 @@ class InterestOverTime:
         if len(rows) > 0:
             rows = self.transform(rows)
             loads = self.load(rows)
-            # self.update()
             response["output_rows"] = loads.output_rows
         return response
