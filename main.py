@@ -17,6 +17,9 @@ def main(request):
     )
     results = job.run()
 
-    responses = {"pipelines": "Taboola", "results": results}
+    responses = {
+        "pipelines": "GoogleTrends",
+        "results": results,
+    }
     print(responses)
     return responses
