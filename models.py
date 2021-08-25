@@ -1,6 +1,7 @@
 import json
 import time
 from datetime import datetime, timedelta
+from google.api_core.exceptions import Forbidden
 
 from pytrends.request import TrendReq
 from pytrends.exceptions import ResponseError
@@ -97,16 +98,26 @@ class InterestOverTime:
         return rows
 
     def load(self, rows):
-        return BQ_CLIENT.load_table_from_json(
-            rows,
-            f"{DATASET}._stage_{self.table}",
-            num_retries=50,
-            job_config=bigquery.LoadJobConfig(
-                create_disposition="CREATE_IF_NEEDED",
-                write_disposition="WRITE_APPEND",
-                schema=self.schema,
-            ),
-        ).result()
+        max_attempts = 5
+        attempt = 0
+        while True:
+            try:
+                return BQ_CLIENT.load_table_from_json(
+                    rows,
+                    f"{DATASET}._stage_{self.table}",
+                    num_retries=50,
+                    job_config=bigquery.LoadJobConfig(
+                        create_disposition="CREATE_IF_NEEDED",
+                        write_disposition="WRITE_APPEND",
+                        schema=self.schema,
+                    ),
+                ).result()
+            except Forbidden as e:
+                if attempt < max_attempts:
+                    time.sleep(30)
+                    attempt += 1
+                else:
+                    raise e
 
     def update(self):
         query = f"""
