@@ -6,6 +6,7 @@ on:
 
 env:
   FUNCTIONS_NAME: WeiterMarketing_GoogleTrends
+  TOPIC_ID: gg_trends
   REGION: us-central1
 
 jobs:
@@ -32,3 +33,4 @@ jobs:
           --runtime=python38
           --trigger-http
           --service-account=${{ secrets.GCP_SA }}
+          --set-env-vars=PROJECT_ID=${{ secrets.PROJECT_ID }},TOPIC_ID=${{ env.TOPIC_ID }}

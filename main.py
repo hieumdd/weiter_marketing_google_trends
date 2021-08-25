@@ -2,7 +2,7 @@ import json
 import base64
 
 from models import InterestOverTime
-
+from broadcast import broadcast
 
 def main(request):
     request_json = request.get_json(silent=True)
@@ -11,10 +11,15 @@ def main(request):
     data = json.loads(base64.b64decode(data_bytes).decode("utf-8"))
     print(data)
 
-    job = InterestOverTime(
-        geo=data["geo"],
-    )
-    results = job.run()
+    if "broadcast" in data:
+        results = broadcast()
+    elif "geo" in data:
+        job = InterestOverTime(
+            geo=data["geo"],
+        )
+        results = job.run()
+    else:
+        raise NotImplementedError(data)
 
     responses = {
         "pipelines": "GoogleTrends",
