@@ -1,6 +1,5 @@
 import json
-from datetime import datetime, timedelta, time
-from abc import ABCMeta, abstractmethod
+from datetime import datetime, timedelta
 
 from pytrends.request import TrendReq
 from google.cloud import bigquery
@@ -13,7 +12,11 @@ RAW_KEYWORD_LIST = [
     "SplashTop",
     "LogMeIn",
 ]
-KW_LISTS = [RAW_KEYWORD_LIST[i : i + 5] for i in range(0, len(RAW_KEYWORD_LIST), 5)]
+KW_PER_LIST = 5
+KW_LISTS = [
+    RAW_KEYWORD_LIST[i : i + KW_PER_LIST]
+    for i in range(0, len(RAW_KEYWORD_LIST), KW_PER_LIST)
+]
 
 TREND_REQ = TrendReq(hl="en-US", tz=360)
 
@@ -50,20 +53,24 @@ class InterestOverTime:
                 geo=self.geo,
             )
             results = TREND_REQ.interest_over_time()
-            results = results.reset_index()
-            results["date"] = results["date"].apply(lambda x: x.date())
-            _rows = results.to_dict("records")
-            _rows = [
-                {
-                    "kw": key,
-                    "geoCode": self.geo,
-                    "value": value,
-                    "date": row["date"].strftime(DATE_FORMAT),
-                }
-                for row in _rows
-                for key, value in row.items()
-                if key not in ("isPartial", "date")
-            ]
+            if results.empty:
+                _rows = []
+            else:
+                results = results.reset_index()
+                results
+                results["date"] = results["date"].apply(lambda x: x.date())
+                _rows = results.to_dict("records")
+                _rows = [
+                    {
+                        "kw": key,
+                        "geoCode": self.geo,
+                        "value": value,
+                        "date": row["date"].strftime(DATE_FORMAT),
+                    }
+                    for row in _rows
+                    for key, value in row.items()
+                    if key not in ("isPartial", "date")
+                ]
             rows.extend(_rows)
         return rows
 
@@ -105,6 +112,7 @@ class InterestOverTime:
         rows = self.get()
         response = {
             "table": self.table,
+            "geo": self.geo,
             "start": self.start.strftime(DATE_FORMAT),
             "end": self.end.strftime(DATE_FORMAT),
             "num_processed": len(rows),
