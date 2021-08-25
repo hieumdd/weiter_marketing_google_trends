@@ -5,6 +5,10 @@
             "type": "STRING"
         },
         {
+            "name": "geoName",
+            "type": "STRING"
+        },
+        {
             "name": "geoCode",
             "type": "STRING"
         },

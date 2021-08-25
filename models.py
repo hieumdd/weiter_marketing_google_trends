@@ -27,7 +27,7 @@ class InterestByRegion:
 
     table = "InterestByRegion"
 
-    def __init__(self, start=None, end=None):
+    def __init__(self, start, end):
         self.start, self.end, self.time_ranges = self.get_time_range(start, end)
         self.schema = self.get_config()
 
@@ -67,10 +67,11 @@ class InterestByRegion:
                     inc_low_vol=True,
                     inc_geo_code=True,
                 )
-                _rows = results.to_dict("records")
+                _rows = results.reset_index().to_dict("records")
                 _rows = [
                     {
                         "kw": key,
+                        "geoName": row["geoName"],
                         "geoCode": row["geoCode"],
                         "value": value,
                         "start": start,
@@ -78,7 +79,7 @@ class InterestByRegion:
                     }
                     for row in _rows
                     for key, value in row.items()
-                    if key != "geoCode"
+                    if key not in ("geoName", "geoCode")
                 ]
                 rows.extend(_rows)
         return rows
@@ -91,7 +92,6 @@ class InterestByRegion:
             }
             for row in rows
         ]
-        x = [row for row in rows]
         return rows
 
     def load(self, rows):
@@ -111,7 +111,7 @@ class InterestByRegion:
         SELECT * EXCEPT(row_num)
         FROM (
             SELECT *, ROW_NUMBER() OVER (
-                PARTITION BY `kw`, `geoCode`, `start`, `end`
+                PARTITION BY `kw`, `geoName`, `geoCode`, `start`, `end`
                 ORDER BY _batched_at DESC
             ) AS row_num
             FROM {DATASET}._stage_{self.table}
