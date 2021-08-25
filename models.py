@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from google.api_core.exceptions import Forbidden
 
 from pytrends.request import TrendReq
-from pytrends.exceptions import ResponseError
 from google.cloud import bigquery
 
 RAW_KEYWORD_LIST = [
@@ -22,7 +21,12 @@ KW_LISTS = [
 ]
 
 EST = 60 * 5
-TREND_REQ = TrendReq(hl="en-US", tz=EST)
+TREND_REQ = TrendReq(
+    hl="en-US",
+    tz=EST,
+    retries=5,
+    backoff_factor=10,
+)
 
 NOW = datetime.utcnow()
 DATE_FORMAT = "%Y-%m-%d"
@@ -51,23 +55,12 @@ class InterestOverTime:
         start, end = [i.strftime(DATE_FORMAT) for i in [self.start, self.end]]
         rows = []
         for kw_list in KW_LISTS:
-            max_attempts = 5
-            attempt = 1
-            while True:
-                try:
-                    TREND_REQ.build_payload(
-                        kw_list,
-                        timeframe=f"{start} {end}",
-                        geo=self.geo,
-                    )
-                    results = TREND_REQ.interest_over_time()
-                    break
-                except ResponseError as e:
-                    if attempt < max_attempts:
-                        time.sleep(20 * attempt)
-                        attempt += 1
-                    else:
-                        raise e
+            TREND_REQ.build_payload(
+                kw_list,
+                timeframe=f"{start} {end}",
+                geo=self.geo,
+            )
+            results = TREND_REQ.interest_over_time()
             if results.empty:
                 _rows = []
             else:
@@ -115,7 +108,7 @@ class InterestOverTime:
                 ).result()
             except Forbidden as e:
                 if attempt < max_attempts:
-                    time.sleep(20 * attempt)
+                    time.sleep(10 * 2 ** attempt)
                     attempt += 1
                 else:
                     raise e
