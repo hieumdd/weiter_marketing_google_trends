@@ -1,9 +1,9 @@
 import json
 import time
 from datetime import datetime, timedelta
-from google.api_core.exceptions import Forbidden
 
 from pytrends.request import TrendReq
+from pytrends.exceptions import ResponseError
 from google.cloud import bigquery
 
 RAW_KEYWORD_LIST = [
@@ -49,17 +49,27 @@ class InterestOverTime:
         start, end = [i.strftime(DATE_FORMAT) for i in [self.start, self.end]]
         rows = []
         for kw_list in KW_LISTS:
-            TREND_REQ.build_payload(
-                kw_list,
-                timeframe=f"{start} {end}",
-                geo=self.geo,
-            )
-            results = TREND_REQ.interest_over_time()
+            max_attempts = 5
+            attempt = 0
+            while True:
+                try:
+                    TREND_REQ.build_payload(
+                        kw_list,
+                        timeframe=f"{start} {end}",
+                        geo=self.geo,
+                    )
+                    results = TREND_REQ.interest_over_time()
+                    break
+                except ResponseError as e:
+                    if attempt < max_attempts:
+                        time.sleep(30)
+                        attempt += 1
+                    else:
+                        raise e
             if results.empty:
                 _rows = []
             else:
                 results = results.reset_index()
-                results
                 results["date"] = results["date"].apply(lambda x: x.date())
                 _rows = results.to_dict("records")
                 _rows = [
@@ -97,7 +107,6 @@ class InterestOverTime:
                 schema=self.schema,
             ),
         ).result()
-
 
     def update(self):
         query = f"""
