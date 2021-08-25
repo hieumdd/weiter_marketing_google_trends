@@ -1,5 +1,7 @@
 import json
+import time
 from datetime import datetime, timedelta
+from google.api_core.exceptions import Forbidden
 
 from pytrends.request import TrendReq
 from google.cloud import bigquery
@@ -88,12 +90,14 @@ class InterestOverTime:
         return BQ_CLIENT.load_table_from_json(
             rows,
             f"{DATASET}._stage_{self.table}",
+            num_retries=50,
             job_config=bigquery.LoadJobConfig(
                 create_disposition="CREATE_IF_NEEDED",
                 write_disposition="WRITE_APPEND",
                 schema=self.schema,
             ),
         ).result()
+
 
     def update(self):
         query = f"""
