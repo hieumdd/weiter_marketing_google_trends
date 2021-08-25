@@ -1,7 +1,7 @@
 import json
 import base64
 
-from models import InterestByRegion
+from models import InterestByRegion, InterestOverTime
 
 
 def main(request):

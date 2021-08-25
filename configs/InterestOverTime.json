@@ -1,0 +1,28 @@
+{
+    "schema": [
+        {
+            "name": "kw",
+            "type": "STRING"
+        },
+        {
+            "name": "geoCode",
+            "type": "STRING"
+        },
+        {
+            "name": "value",
+            "type": "INTEGER"
+        },
+        {
+            "name": "start",
+            "type": "DATE"
+        },
+        {
+            "name": "end",
+            "type": "DATE"
+        },
+        {
+            "name": "_batched_at",
+            "type": "TIMESTAMP"
+        }
+    ]
+}

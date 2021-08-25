@@ -1,20 +1,21 @@
 import json
 from datetime import datetime, timedelta, time
+from abc import ABCMeta, abstractmethod
 
 from pytrends.request import TrendReq
 from google.cloud import bigquery
 
 RAW_KEYWORD_LIST = [
-    "AnyDesk",
-    "RemotePC",
-    "TeamViewer",
+    # "AnyDesk",
+    # "RemotePC",
+    # "TeamViewer",
     "Zoom",
-    "SplashTop",
-    "LogMeIn",
+    # "SplashTop",
+    # "LogMeIn",
 ]
 KW_LISTS = [RAW_KEYWORD_LIST[i : i + 5] for i in range(0, len(RAW_KEYWORD_LIST), 5)]
 
-TREND_REQ = TrendReq(hl="en-US", tz=-60 * 7)
+TREND_REQ = TrendReq(hl="en-US", tz=360)
 
 NOW = datetime.utcnow()
 DATE_FORMAT = "%Y-%m-%d"
@@ -23,9 +24,11 @@ BQ_CLIENT = bigquery.Client()
 DATASET = "GoogleTrends"
 
 
-class InterestByRegion:
-
-    table = "InterestByRegion"
+class GoogleTrends(metaclass=ABCMeta):
+    @property
+    @abstractmethod
+    def table(self):
+        pass
 
     def __init__(self, start, end):
         self.start, self.end, self.time_ranges = self.get_time_range(start, end)
@@ -55,34 +58,9 @@ class InterestByRegion:
             _hard_start += timedelta(weeks=1)
         return hard_start, time_ranges[-1] + timedelta(days=6), time_ranges
 
+    @abstractmethod
     def get(self):
-        rows = []
-        for time_range in self.time_ranges:
-            start = time_range.strftime(DATE_FORMAT)
-            end = (time_range + timedelta(days=6)).strftime(DATE_FORMAT)
-            for kw_list in KW_LISTS:
-                TREND_REQ.build_payload(kw_list, timeframe=f"{start} {end}")
-                results = TREND_REQ.interest_by_region(
-                    resolution="COUNTRY",
-                    inc_low_vol=True,
-                    inc_geo_code=True,
-                )
-                _rows = results.reset_index().to_dict("records")
-                _rows = [
-                    {
-                        "kw": key,
-                        "geoName": row["geoName"],
-                        "geoCode": row["geoCode"],
-                        "value": value,
-                        "start": start,
-                        "end": end,
-                    }
-                    for row in _rows
-                    for key, value in row.items()
-                    if key not in ("geoName", "geoCode")
-                ]
-                rows.extend(_rows)
-        return rows
+        pass
 
     def transform(self, rows):
         rows = [
@@ -132,3 +110,81 @@ class InterestByRegion:
             self.update()
             response["output_rows"] = loads.output_rows
         return response
+
+
+class InterestByRegion(GoogleTrends):
+    @property
+    def table(self):
+        return "InterestByRegion"
+
+    def __init__(self, start, end):
+        super().__init__(start, end)
+
+    def get(self):
+        rows = []
+        for time_range in self.time_ranges:
+            start = time_range.strftime(DATE_FORMAT)
+            # start = "2021-01-01"
+            end = (time_range + timedelta(days=6)).strftime(DATE_FORMAT)
+            # end = "2021-08-24"
+            for kw_list in KW_LISTS:
+                TREND_REQ.build_payload(
+                    kw_list,
+                    cat=0,
+                    timeframe=f"{start} {end}",
+                    # timeframe=f"now 7-d",
+                )
+                results = TREND_REQ.interest_by_region(
+                    resolution="COUNTRY",
+                    inc_low_vol=True,
+                    inc_geo_code=True,
+                )
+                _rows = results.reset_index().to_dict("records")
+                _rows = [
+                    {
+                        "kw": key,
+                        "geoName": row["geoName"],
+                        "geoCode": row["geoCode"],
+                        "value": value,
+                        # "start": start,
+                        # "end": end,
+                    }
+                    for row in _rows
+                    for key, value in row.items()
+                    if key not in ("geoName", "geoCode")
+                ]
+                rows.extend(_rows)
+        return rows
+
+
+class InterestOverTime(GoogleTrends):
+    @property
+    def table(self):
+        return "InterestOverTime"
+
+    def __init__(self, start, end):
+        super().__init__(start, end)
+
+    def get(self):
+        rows = []
+        for time_range in self.time_ranges:
+            start = time_range.strftime(DATE_FORMAT)
+            end = (time_range + timedelta(days=6)).strftime(DATE_FORMAT)
+            for kw_list in KW_LISTS:
+                TREND_REQ.build_payload(kw_list, timeframe=f"{start} {end}")
+                results = TREND_REQ.interest_over_time()
+                _rows = results.reset_index().to_dict("records")
+                _rows = [
+                    {
+                        "kw": key,
+                        "geoCode": row["geoCode"],
+                        "value": value,
+                        "start": start,
+                        "end": end,
+                    }
+                    for row in _rows
+                    for key, value in row.items()
+                    if key != "geoCode"
+                ]
+                rows.extend(_rows)
+        return rows
