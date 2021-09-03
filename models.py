@@ -6,7 +6,7 @@ from google.api_core.exceptions import Forbidden
 from pytrends.request import TrendReq
 from google.cloud import bigquery
 
-RAW_KEYWORD_LIST = [
+KEYWORDS = [
     "AnyDesk",
     "RemotePC",
     "TeamViewer",
@@ -14,11 +14,6 @@ RAW_KEYWORD_LIST = [
     "SplashTop",
     "LogMeIn",
 ]
-# KW_PER_LIST = 5
-# KW_LISTS = [
-#     RAW_KEYWORD_LIST[i : i + KW_PER_LIST]
-#     for i in range(0, len(RAW_KEYWORD_LIST), KW_PER_LIST)
-# ]
 
 EST = 60 * 5
 TREND_REQ = TrendReq(
@@ -49,10 +44,10 @@ class InterestOverTime:
         self.end = NOW
         self.start = NOW - timedelta(days=365)
 
-    def get(self):
+    def _get(self):
         start, end = [i.strftime(DATE_FORMAT) for i in [self.start, self.end]]
         rows = []
-        for kw in RAW_KEYWORD_LIST:
+        for kw in KEYWORDS:
             TREND_REQ.build_payload(
                 [kw],
                 timeframe=f"{start} {end}",
@@ -79,7 +74,7 @@ class InterestOverTime:
             rows.extend(_rows)
         return rows
 
-    def transform(self, rows):
+    def _transform(self, rows):
         rows = [
             {
                 **row,
@@ -89,7 +84,7 @@ class InterestOverTime:
         ]
         return rows
 
-    def load(self, rows):
+    def _load(self, rows):
         max_attempts = 5
         attempt = 1
         while True:
@@ -112,7 +107,7 @@ class InterestOverTime:
                     raise e
 
     def run(self):
-        rows = self.get()
+        rows = self._get()
         response = {
             "table": self.table,
             "geo": self.geo,
@@ -121,7 +116,7 @@ class InterestOverTime:
             "num_processed": len(rows),
         }
         if len(rows) > 0:
-            rows = self.transform(rows)
-            loads = self.load(rows)
+            rows = self._transform(rows)
+            loads = self._load(rows)
             response["output_rows"] = loads.output_rows
         return response
