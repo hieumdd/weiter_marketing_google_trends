@@ -14,11 +14,11 @@ RAW_KEYWORD_LIST = [
     "SplashTop",
     "LogMeIn",
 ]
-KW_PER_LIST = 5
-KW_LISTS = [
-    RAW_KEYWORD_LIST[i : i + KW_PER_LIST]
-    for i in range(0, len(RAW_KEYWORD_LIST), KW_PER_LIST)
-]
+# KW_PER_LIST = 5
+# KW_LISTS = [
+#     RAW_KEYWORD_LIST[i : i + KW_PER_LIST]
+#     for i in range(0, len(RAW_KEYWORD_LIST), KW_PER_LIST)
+# ]
 
 EST = 60 * 5
 TREND_REQ = TrendReq(
@@ -36,27 +36,25 @@ DATASET = "GoogleTrends"
 
 
 class InterestOverTime:
+    table = "InterestOverTime"
+
     @property
-    def table(self):
-        return "InterestOverTime"
+    def schema(self):
+        with open(f"configs/{self.table}.json", "r") as f:
+            config = json.load(f)
+        return config["schema"]
 
     def __init__(self, geo):
         self.geo = geo
         self.end = NOW
         self.start = NOW - timedelta(days=365)
-        self.schema = self.get_config()
-
-    def get_config(self):
-        with open(f"configs/{self.table}.json", "r") as f:
-            config = json.load(f)
-        return config["schema"]
 
     def get(self):
         start, end = [i.strftime(DATE_FORMAT) for i in [self.start, self.end]]
         rows = []
-        for kw_list in KW_LISTS:
+        for kw in RAW_KEYWORD_LIST:
             TREND_REQ.build_payload(
-                kw_list,
+                [kw],
                 timeframe=f"{start} {end}",
                 geo=self.geo,
             )
