@@ -11,8 +11,8 @@ KEYWORDS = [
     "RemotePC",
     "TeamViewer",
     "Zoom",
-    "SplashTop",
-    "LogMeIn",
+    # "SplashTop",
+    # "LogMeIn",
 ]
 
 EST = 60 * 5
@@ -47,31 +47,31 @@ class InterestOverTime:
     def _get(self):
         start, end = [i.strftime(DATE_FORMAT) for i in [self.start, self.end]]
         rows = []
-        for kw in KEYWORDS:
-            TREND_REQ.build_payload(
-                [kw],
-                timeframe=f"{start} {end}",
-                geo=self.geo,
-            )
-            results = TREND_REQ.interest_over_time()
-            if results.empty:
-                _rows = []
-            else:
-                results = results.reset_index()
-                results["date"] = results["date"].apply(lambda x: x.date())
-                _rows = results.to_dict("records")
-                _rows = [
-                    {
-                        "kw": key,
-                        "geoCode": self.geo,
-                        "value": value,
-                        "date": row["date"].strftime(DATE_FORMAT),
-                    }
-                    for row in _rows
-                    for key, value in row.items()
-                    if key not in ("isPartial", "date")
-                ]
-            rows.extend(_rows)
+        # for kw in KEYWORDS:
+        TREND_REQ.build_payload(
+            KEYWORDS,
+            timeframe=f"{start} {end}",
+            geo=self.geo,
+        )
+        results = TREND_REQ.interest_over_time()
+        if results.empty:
+            _rows = []
+        else:
+            results = results.reset_index()
+            results["date"] = results["date"].apply(lambda x: x.date())
+            _rows = results.to_dict("records")
+            _rows = [
+                {
+                    "kw": key,
+                    "geoCode": self.geo,
+                    "value": value,
+                    "date": row["date"].strftime(DATE_FORMAT),
+                }
+                for row in _rows
+                for key, value in row.items()
+                if key not in ("isPartial", "date")
+            ]
+        rows.extend(_rows)
         return rows
 
     def _transform(self, rows):
