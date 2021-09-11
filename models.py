@@ -6,13 +6,11 @@ from google.api_core.exceptions import Forbidden
 from pytrends.request import TrendReq
 from google.cloud import bigquery
 
-KEYWORDS = [
-    "AnyDesk",
-    "RemotePC",
-    "TeamViewer",
-    "Zoom",
-    # "SplashTop",
-    # "LogMeIn",
+KEYWORD_PAIRS = [
+    ["TeamViewer", "AnyDesk"],
+    ["SplashTop", "AnyDesk"],
+    ["RemotePC", "AnyDesk"],
+    ["LogMeIn", "AnyDesk"],
 ]
 
 EST = 60 * 5
@@ -32,12 +30,14 @@ DATASET = "GoogleTrends"
 
 class InterestOverTime:
     table = "InterestOverTime"
-
-    @property
-    def schema(self):
-        with open(f"configs/{self.table}.json", "r") as f:
-            config = json.load(f)
-        return config["schema"]
+    schema = [
+        {"name": "kw", "type": "STRING"},
+        {"name": "geoCode", "type": "STRING"},
+        {"name": "value", "type": "INTEGER"},
+        {"name": "date", "type": "DATE"},
+        {"name": "pair", "type": "STRING"},
+        {"name": "_batched_at", "type": "TIMESTAMP"},
+    ]
 
     def __init__(self, geo):
         self.geo = geo
@@ -47,31 +47,32 @@ class InterestOverTime:
     def _get(self):
         start, end = [i.strftime(DATE_FORMAT) for i in [self.start, self.end]]
         rows = []
-        # for kw in KEYWORDS:
-        TREND_REQ.build_payload(
-            KEYWORDS,
-            timeframe=f"{start} {end}",
-            geo=self.geo,
-        )
-        results = TREND_REQ.interest_over_time()
-        if results.empty:
-            _rows = []
-        else:
-            results = results.reset_index()
-            results["date"] = results["date"].apply(lambda x: x.date())
-            _rows = results.to_dict("records")
-            _rows = [
-                {
-                    "kw": key,
-                    "geoCode": self.geo,
-                    "value": value,
-                    "date": row["date"].strftime(DATE_FORMAT),
-                }
-                for row in _rows
-                for key, value in row.items()
-                if key not in ("isPartial", "date")
-            ]
-        rows.extend(_rows)
+        for pair in KEYWORD_PAIRS:
+            TREND_REQ.build_payload(
+                pair,
+                timeframe=f"{start} {end}",
+                geo=self.geo,
+            )
+            results = TREND_REQ.interest_over_time()
+            if results.empty:
+                _rows = []
+            else:
+                results = results.reset_index()
+                results["date"] = results["date"].apply(lambda x: x.date())
+                _rows = results.to_dict("records")
+                _rows = [
+                    {
+                        "kw": key,
+                        "geoCode": self.geo,
+                        "value": value,
+                        "date": row["date"].strftime(DATE_FORMAT),
+                        "pair": " - ".join(pair),
+                    }
+                    for row in _rows
+                    for key, value in row.items()
+                    if key not in ("isPartial", "date")
+                ]
+            rows.extend(_rows)
         return rows
 
     def _transform(self, rows):
